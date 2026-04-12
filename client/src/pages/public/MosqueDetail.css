@@ -1,0 +1,149 @@
+.detail__identity {
+  margin-bottom: var(--space-5);
+}
+
+.detail__name {
+  font-size:   var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color:       var(--text-primary);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.detail__name-roman {
+  font-size:   var(--text-base);
+  color:       var(--text-secondary);
+  font-style:  italic;
+  margin-top:  var(--space-1);
+}
+
+.detail__area {
+  display:     inline-flex;
+  align-items: center;
+  gap:         var(--space-1);
+  font-size:   var(--text-sm);
+  color:       var(--text-tertiary);
+  margin-top:  var(--space-2);
+}
+
+/* ── Hero next prayer ── */
+.detail__hero {
+  background:    var(--accent-light);
+  border-radius: var(--radius-xl);
+  padding:       var(--space-6);
+  text-align:    center;
+  margin-bottom: var(--space-5);
+  display:       flex;
+  flex-direction: column;
+  align-items:   center;
+  gap:           var(--space-2);
+}
+
+.detail__hero-label {
+  font-size:   var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color:       var(--accent-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+[lang="ur"] .detail__hero-label,
+[lang="ar"] .detail__hero-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.detail__hero-prayer {
+  font-size:   var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color:       var(--accent-dark);
+}
+
+.detail__hero-time {
+  font-size:   var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color:       var(--accent);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+/* ── Prayer rows ── */
+.detail__times-card { margin-bottom: var(--space-5); }
+
+.detail__prayer-row {
+  display:     flex;
+  align-items: center;
+  padding:     var(--space-4);
+  gap:         var(--space-3);
+  transition:  background var(--transition-fast);
+}
+
+.detail__prayer-row--bordered {
+  border-bottom: 1px solid var(--separator);
+}
+
+.detail__prayer-row--next {
+  background: var(--accent-light);
+}
+
+.detail__prayer-name {
+  font-size:   var(--text-base);
+  font-weight: var(--weight-medium);
+  color:       var(--text-primary);
+  flex:        1;
+}
+
+.detail__prayer-row--next .detail__prayer-name {
+  color:       var(--accent-dark);
+  font-weight: var(--weight-semibold);
+}
+
+.detail__prayer-time {
+  font-size:   var(--text-base);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-primary);
+}
+
+.detail__prayer-row--next .detail__prayer-time { color: var(--accent); }
+
+.detail__next-badge { margin-inline-start: var(--space-2); }
+.detail__pending    { color: var(--text-tertiary); font-size: var(--text-sm); }
+
+/* ── Eid section ── */
+.detail__section-title {
+  font-size:     var(--text-base);
+  font-weight:   var(--weight-semibold);
+  color:         var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.detail__eid-list    { display: flex; flex-direction: column; gap: var(--space-3); }
+.detail__eid-section { margin-bottom: var(--space-5); }
+
+.detail__eid-datetime {
+  margin-top:  var(--space-2);
+  font-size:   var(--text-sm);
+  color:       var(--text-secondary);
+}
+
+.detail__map-btn   { margin-bottom: var(--space-4); }
+.detail__updated   { font-size: var(--text-xs); color: var(--text-tertiary); text-align: center; }
+
+.detail__error     { color: var(--danger); text-align: center; padding: var(--space-8); }
+
+/* Subscribe button in TopBar rightSlot */
+.detail__sub-btn {
+  width:           40px;
+  height:          40px;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      transparent;
+  border:          none;
+  cursor:          pointer;
+  color:           var(--text-secondary);
+  border-radius:   var(--radius-sm);
+  transition:      color var(--transition-fast), background var(--transition-fast);
+}
+
+.detail__sub-btn--active { color: var(--accent); }
+.detail__sub-btn:hover   { background: var(--surface-2); }

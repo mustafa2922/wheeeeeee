@@ -1,0 +1,117 @@
+.settings__section-label {
+  font-size:     var(--text-xs);
+  font-weight:   var(--weight-semibold);
+  color:         var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-2);
+  margin-top:    var(--space-6);
+  padding-inline: var(--space-1);
+}
+
+[lang="ur"] .settings__section-label,
+[lang="ar"] .settings__section-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.settings__card    { margin-bottom: var(--space-2); }
+
+.settings__row {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         var(--space-4);
+  cursor:          pointer;
+  transition:      background var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings__row--bordered { border-bottom: 1px solid var(--separator); }
+
+.settings__row--active { background: var(--accent-light); }
+
+.settings__row-label {
+  font-size:   var(--text-base);
+  font-weight: var(--weight-medium);
+  color:       var(--text-primary);
+}
+
+.settings__check {
+  width:         18px;
+  height:        18px;
+  border-radius: 50%;
+  background:    var(--accent);
+  flex-shrink:   0;
+}
+
+.settings__role-badge {
+  font-size:     var(--text-xs);
+  font-weight:   var(--weight-semibold);
+  color:         var(--accent-dark);
+  background:    var(--accent-light);
+  padding:       2px var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.settings__chevron {
+  font-size: var(--text-lg);
+  color:     var(--text-tertiary);
+}
+
+/* ── Theme picker ── */
+.settings__themes {
+  display:               grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:                   var(--space-3);
+  margin-bottom:         var(--space-2);
+}
+
+.settings__theme-btn {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            var(--space-2);
+  padding:        var(--space-3) var(--space-2);
+  background:     var(--surface-1);
+  border:         2px solid var(--border-subtle);
+  border-radius:  var(--radius-md);
+  cursor:         pointer;
+  transition:     border-color var(--transition-fast);
+}
+
+.settings__theme-btn--active {
+  border-color: var(--accent);
+}
+
+.settings__theme-swatch {
+  width:         32px;
+  height:        32px;
+  border-radius: 50%;
+  border:        1px solid var(--border-default);
+  flex-shrink:   0;
+}
+
+.settings__theme-label {
+  font-size:  var(--text-xs);
+  color:      var(--text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+/* ── Donate ── */
+.settings__donate      { margin-top: var(--space-8); }
+.settings__donate-title {
+  font-size:   var(--text-base);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+.settings__donate-hint { font-size: var(--text-sm); color: var(--text-secondary); }
+
+.settings__version {
+  text-align:  center;
+  font-size:   var(--text-xs);
+  color:       var(--text-tertiary);
+  margin-top:  var(--space-6);
+  padding-bottom: var(--space-4);
+}

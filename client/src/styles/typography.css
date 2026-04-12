@@ -1,0 +1,61 @@
+/* ─── Font imports ─── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@400;500;600;700&display=swap');
+
+/* ─── Per-language font assignment ─── */
+:root,
+[lang="en"] {
+  --font-primary: 'Inter', -apple-system, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --font-arabic:  'Noto Naskh Arabic', serif;
+  --font-urdu:    'Noto Nastaliq Urdu', serif;
+  --line-height-base: 1.6;
+  --line-height-tight: 1.3;
+  --letter-spacing-tight: -0.02em;
+}
+
+[lang="ur"] {
+  --font-primary: 'Noto Nastaliq Urdu', serif;
+  --line-height-base: 2.2;   /* Nastaliq needs room */
+  --line-height-tight: 1.8;
+  --letter-spacing-tight: 0;
+}
+
+[lang="ar"] {
+  --font-primary: 'Noto Naskh Arabic', serif;
+  --line-height-base: 1.8;
+  --line-height-tight: 1.5;
+  --letter-spacing-tight: 0;
+}
+
+/* ─── Base application ─── */
+body {
+  font-family:    var(--font-primary);
+  font-size:      var(--text-base);
+  font-weight:    var(--weight-regular);
+  line-height:    var(--line-height-base);
+  color:          var(--text-primary);
+  background:     var(--bg-secondary);
+  -webkit-font-smoothing:  antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── RTL layout flip ─── */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+/* ─── Utility classes ─── */
+.text-xs      { font-size: var(--text-xs);   }
+.text-sm      { font-size: var(--text-sm);   }
+.text-base    { font-size: var(--text-base); }
+.text-md      { font-size: var(--text-md);   }
+.text-lg      { font-size: var(--text-lg);   }
+.text-xl      { font-size: var(--text-xl);   }
+.text-2xl     { font-size: var(--text-2xl);  }
+.text-primary   { color: var(--text-primary);   }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary  { color: var(--text-tertiary);  }
+.text-accent    { color: var(--accent);         }
+.font-medium   { font-weight: var(--weight-medium);   }
+.font-semibold { font-weight: var(--weight-semibold); }
+.font-bold     { font-weight: var(--weight-bold);     }

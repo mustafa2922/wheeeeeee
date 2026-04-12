@@ -1,0 +1,89 @@
+.btn {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             var(--space-2);
+  border:          none;
+  border-radius:   var(--radius-md);
+  font-family:     var(--font-primary);
+  font-weight:     var(--weight-semibold);
+  cursor:          pointer;
+  transition:      background var(--transition-fast),
+                   opacity     var(--transition-fast),
+                   transform   var(--transition-fast);
+  white-space:     nowrap;
+  user-select:     none;
+  -webkit-tap-highlight-color: transparent;
+  position:        relative;
+  overflow:        hidden;
+}
+
+/* ── Sizes ── */
+.btn--sm { height: 34px; padding-inline: var(--space-3); font-size: var(--text-sm);  }
+.btn--md { height: 44px; padding-inline: var(--space-5); font-size: var(--text-base);}
+.btn--lg { height: 52px; padding-inline: var(--space-6); font-size: var(--text-md);  }
+
+/* ── Variants ── */
+.btn--primary {
+  background: var(--accent);
+  color:      var(--text-on-accent);
+}
+.btn--primary:hover:not(:disabled) { background: var(--accent-dark); }
+
+.btn--secondary {
+  background: var(--surface-2);
+  color:      var(--text-primary);
+}
+.btn--secondary:hover:not(:disabled) { background: var(--surface-3); }
+
+.btn--ghost {
+  background: transparent;
+  color:      var(--accent);
+}
+.btn--ghost:hover:not(:disabled) { background: var(--accent-light); }
+
+.btn--danger {
+  background: var(--danger);
+  color:      #ffffff;
+}
+.btn--danger:hover:not(:disabled) { opacity: 0.88; }
+
+/* ── States ── */
+.btn:disabled { opacity: 0.42; cursor: not-allowed; }
+
+.btn:active:not(:disabled) {
+  transform:  scale(0.97);
+  opacity:    0.88;
+}
+
+/* ── Full width ── */
+.btn--full { width: 100%; }
+
+/* ── Icon only ── */
+.btn--icon-only { padding-inline: 0; aspect-ratio: 1; border-radius: var(--radius-sm); }
+.btn--icon-only.btn--sm { width: 34px; }
+.btn--icon-only.btn--md { width: 44px; }
+.btn--icon-only.btn--lg { width: 52px; }
+
+/* ── Icons ── */
+.btn__icon { display: flex; align-items: center; flex-shrink: 0; }
+.btn__icon svg { width: 18px; height: 18px; }
+.btn--sm .btn__icon svg { width: 16px; height: 16px; }
+.btn--lg .btn__icon svg { width: 20px; height: 20px; }
+
+/* ── Loading spinner ── */
+.btn__spinner {
+  width:  18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn--loading .btn__label { opacity: 0.6; }

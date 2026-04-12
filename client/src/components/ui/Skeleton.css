@@ -1,0 +1,45 @@
+.skeleton {
+  display:    block;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2)   25%,
+    var(--surface-3)   50%,
+    var(--surface-2)   75%
+  );
+  background-size: 200% 100%;
+  animation:  skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position:  200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Mosque card skeleton ── */
+.skeleton-mosque-card {
+  background:    var(--surface-1);
+  border-radius: var(--radius-lg);
+  padding:       var(--space-4);
+  box-shadow:    var(--shadow-xs);
+}
+
+.skeleton-mosque-card__header {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-2);
+  padding-bottom: var(--space-4);
+  border-bottom:  1px solid var(--separator);
+  margin-bottom:  var(--space-4);
+}
+
+.skeleton-mosque-card__grid {
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:                   var(--space-3);
+}
+
+.skeleton-mosque-card__cell {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-1);
+}

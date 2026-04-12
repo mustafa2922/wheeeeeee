@@ -1,0 +1,163 @@
+/* ════════════════════════════════════
+   LIGHT (default)
+════════════════════════════════════ */
+[data-theme="light"] {
+  --accent:           #059669;
+  --accent-light:     #d1fae5;
+  --accent-dark:      #047857;
+  --accent-contrast:  #ffffff;
+
+  --bg-primary:       #ffffff;
+  --bg-secondary:     #f2f2f7;   /* iOS grouped bg */
+  --bg-tertiary:      #e5e5ea;
+  --bg-elevated:      #ffffff;
+  --bg-overlay:       rgba(255,255,255,0.82);
+
+  --surface-1:        #ffffff;
+  --surface-2:        #f2f2f7;
+  --surface-3:        #e5e5ea;
+
+  --text-primary:     #1c1c1e;
+  --text-secondary:   #636366;
+  --text-tertiary:    #aeaeb2;
+  --text-on-accent:   #ffffff;
+
+  --border-subtle:    rgba(0,0,0,0.08);
+  --border-default:   rgba(0,0,0,0.14);
+  --border-strong:    rgba(0,0,0,0.22);
+
+  --danger:           #ef4444;
+  --danger-light:     #fee2e2;
+  --warning:          #f59e0b;
+  --warning-light:    #fef3c7;
+  --success:          #059669;
+  --success-light:    #d1fae5;
+  --info:             #3b82f6;
+  --info-light:       #dbeafe;
+
+  --separator:        rgba(0,0,0,0.10);
+  --scrim:            rgba(0,0,0,0.40);
+}
+
+/* ════════════════════════════════════
+   DARK
+════════════════════════════════════ */
+[data-theme="dark"] {
+  --accent:           #34d399;
+  --accent-light:     #064e3b;
+  --accent-dark:      #6ee7b7;
+  --accent-contrast:  #022c22;
+
+  --bg-primary:       #000000;
+  --bg-secondary:     #1c1c1e;
+  --bg-tertiary:      #2c2c2e;
+  --bg-elevated:      #1c1c1e;
+  --bg-overlay:       rgba(28,28,30,0.85);
+
+  --surface-1:        #1c1c1e;
+  --surface-2:        #2c2c2e;
+  --surface-3:        #3a3a3c;
+
+  --text-primary:     #f2f2f7;
+  --text-secondary:   #aeaeb2;
+  --text-tertiary:    #636366;
+  --text-on-accent:   #022c22;
+
+  --border-subtle:    rgba(255,255,255,0.06);
+  --border-default:   rgba(255,255,255,0.12);
+  --border-strong:    rgba(255,255,255,0.20);
+
+  --danger:           #f87171;
+  --danger-light:     #450a0a;
+  --warning:          #fbbf24;
+  --warning-light:    #451a03;
+  --success:          #34d399;
+  --success-light:    #064e3b;
+  --info:             #60a5fa;
+  --info-light:       #1e3a5f;
+
+  --separator:        rgba(255,255,255,0.08);
+  --scrim:            rgba(0,0,0,0.65);
+}
+
+/* ════════════════════════════════════
+   WARM (sepia — gentle for Fajr/Isha)
+════════════════════════════════════ */
+[data-theme="warm"] {
+  --accent:           #b45309;
+  --accent-light:     #fef3c7;
+  --accent-dark:      #92400e;
+  --accent-contrast:  #ffffff;
+
+  --bg-primary:       #fdf8f0;
+  --bg-secondary:     #f5ede0;
+  --bg-tertiary:      #ece0d0;
+  --bg-elevated:      #fdf8f0;
+  --bg-overlay:       rgba(253,248,240,0.88);
+
+  --surface-1:        #fdf8f0;
+  --surface-2:        #f5ede0;
+  --surface-3:        #ece0d0;
+
+  --text-primary:     #1c1208;
+  --text-secondary:   #78624a;
+  --text-tertiary:    #b39c82;
+  --text-on-accent:   #ffffff;
+
+  --border-subtle:    rgba(100,60,0,0.08);
+  --border-default:   rgba(100,60,0,0.14);
+  --border-strong:    rgba(100,60,0,0.22);
+
+  --danger:           #dc2626;
+  --danger-light:     #fee2e2;
+  --warning:          #d97706;
+  --warning-light:    #fef3c7;
+  --success:          #059669;
+  --success-light:    #d1fae5;
+  --info:             #2563eb;
+  --info-light:       #dbeafe;
+
+  --separator:        rgba(100,60,0,0.10);
+  --scrim:            rgba(28,18,8,0.45);
+}
+
+/* ════════════════════════════════════
+   MIDNIGHT (deep navy — premium night)
+════════════════════════════════════ */
+[data-theme="midnight"] {
+  --accent:           #38bdf8;
+  --accent-light:     #0c2840;
+  --accent-dark:      #7dd3fc;
+  --accent-contrast:  #03111e;
+
+  --bg-primary:       #03111e;
+  --bg-secondary:     #071e33;
+  --bg-tertiary:      #0d2a45;
+  --bg-elevated:      #071e33;
+  --bg-overlay:       rgba(7,30,51,0.88);
+
+  --surface-1:        #071e33;
+  --surface-2:        #0d2a45;
+  --surface-3:        #133558;
+
+  --text-primary:     #e0f2fe;
+  --text-secondary:   #7ab8d9;
+  --text-tertiary:    #3d7a9e;
+  --text-on-accent:   #03111e;
+
+  --border-subtle:    rgba(56,189,248,0.08);
+  --border-default:   rgba(56,189,248,0.14);
+  --border-strong:    rgba(56,189,248,0.24);
+
+  --danger:           #f87171;
+  --danger-light:     #2d0a0a;
+  --warning:          #fbbf24;
+  --warning-light:    #2d1500;
+  --success:          #34d399;
+  --success-light:    #042b1e;
+  --info:             #38bdf8;
+  --info-light:       #0c2840;
+
+  --separator:        rgba(56,189,248,0.08);
+  --scrim:            rgba(3,17,30,0.70);
+}

@@ -1,0 +1,71 @@
+@import './tokens.css';
+@import './themes.css';
+@import './typography.css';
+
+/* ─── Reset ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent; /* removes blue flash on mobile tap */
+}
+
+html {
+  scroll-behavior: smooth;
+  /* iOS safe area support */
+  padding-top:    env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+  min-height:        100dvh; /* dvh = dynamic viewport height — fixes iOS toolbar issue */
+  overflow-x:        hidden;
+  overscroll-behavior: none; /* prevents pull-to-refresh on PWA */
+}
+
+/* ─── Focus ring — accessibility ─── */
+:focus-visible {
+  outline:        2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius:  var(--radius-sm);
+}
+
+/* ─── Scrollbar — webkit ─── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: var(--radius-full); }
+
+/* ─── Page content clears the top bar and bottom nav ─── */
+.page-content {
+  padding-top:    calc(var(--top-bar-height) + var(--space-4));
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-6)
+                  + env(safe-area-inset-bottom));
+  padding-inline: var(--space-4);
+  max-width:      640px;
+  margin-inline:  auto;
+}
+
+/* ─── iOS-style grouped section ─── */
+.section-group {
+  background:    var(--surface-1);
+  border-radius: var(--radius-lg);
+  overflow:      hidden;
+  box-shadow:    var(--shadow-xs);
+}
+.section-group + .section-group { margin-top: var(--space-4); }
+
+/* ─── Divider ─── */
+.divider {
+  height:     1px;
+  background: var(--separator);
+  margin-inline-start: var(--space-4); /* inset like iOS */
+}
+
+/* ─── Haptic-feel press animation ─── */
+@media (hover: none) {
+  .pressable:active {
+    transform:  scale(0.97);
+    opacity:    0.85;
+    transition: var(--transition-fast);
+  }
+}

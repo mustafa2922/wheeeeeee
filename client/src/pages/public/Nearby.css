@@ -1,0 +1,26 @@
+.nearby__list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.nearby__item    { position: relative; }
+.nearby__distance {
+  position:      absolute;
+  top:           var(--space-3);
+  inset-inline-end: var(--space-3);
+  font-size:     var(--text-xs);
+  font-weight:   var(--weight-semibold);
+  color:         var(--accent);
+  background:    var(--accent-light);
+  padding:       2px var(--space-2);
+  border-radius: var(--radius-full);
+  z-index:       var(--z-raised);
+  pointer-events: none;
+}
+
+.nearby__gps-error {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            var(--space-3);
+  padding:        var(--space-12) var(--space-4);
+  color:          var(--text-secondary);
+  text-align:     center;
+}

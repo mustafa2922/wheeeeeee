@@ -1,0 +1,158 @@
+.mosque-card { cursor: pointer; }
+
+/* ── Header ── */
+.mosque-card__header {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  gap:             var(--space-3);
+}
+
+.mosque-card__title-wrap {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+  min-width:      0; /* allow text truncation */
+}
+
+.mosque-card__name {
+  font-size:   var(--text-md);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.mosque-card__name-roman {
+  font-size:  var(--text-sm);
+  color:      var(--text-secondary);
+  font-style: italic;
+}
+
+.mosque-card__area {
+  display:     inline-flex;
+  align-items: center;
+  gap:         var(--space-1);
+  font-size:   var(--text-xs);
+  color:       var(--text-tertiary);
+  margin-top:  2px;
+}
+
+/* ── Subscribe button ── */
+.mosque-card__subscribe {
+  flex-shrink:  0;
+  width:        36px;
+  height:       36px;
+  display:      flex;
+  align-items:  center;
+  justify-content: center;
+  background:   var(--surface-2);
+  border:       none;
+  border-radius: var(--radius-sm);
+  color:        var(--text-secondary);
+  cursor:       pointer;
+  transition:   background var(--transition-fast),
+                color      var(--transition-fast),
+                transform  var(--transition-spring);
+}
+
+.mosque-card__subscribe--active {
+  background: var(--accent-light);
+  color:      var(--accent);
+}
+
+.mosque-card__subscribe:active { transform: scale(0.90); }
+
+/* ── Next prayer banner ── */
+.mosque-card__next-prayer {
+  display:        flex;
+  align-items:    center;
+  gap:            var(--space-2);
+  padding:        var(--space-2) var(--space-4);
+  background:     var(--accent-light);
+  flex-wrap:      wrap;
+}
+
+.mosque-card__next-label {
+  font-size:  var(--text-xs);
+  color:      var(--accent-dark);
+  font-weight: var(--weight-medium);
+}
+
+.mosque-card__next-name {
+  font-size:   var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color:       var(--accent-dark);
+}
+
+.mosque-card__next-time {
+  font-size:   var(--text-sm);
+  font-weight: var(--weight-bold);
+  color:       var(--accent-dark);
+  margin-inline-start: auto;
+}
+
+.mosque-card__countdown {
+  flex-shrink: 0;
+}
+
+/* ── Prayer times grid ── */
+.mosque-card__times {
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:                   1px;
+  background:            var(--separator); /* gap color trick */
+  border-top:            1px solid var(--separator);
+}
+
+.mosque-card__prayer {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             2px;
+  padding:         var(--space-3) var(--space-2);
+  background:      var(--surface-1);
+  transition:      background var(--transition-fast);
+}
+
+/* Highlight the next prayer cell */
+.mosque-card__prayer--next {
+  background: var(--accent-light);
+}
+
+.mosque-card__prayer-name {
+  font-size:   var(--text-xs);
+  color:       var(--text-tertiary);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Override uppercase for Urdu/Arabic */
+[lang="ur"] .mosque-card__prayer-name,
+[lang="ar"] .mosque-card__prayer-name {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.mosque-card__prayer-time {
+  font-size:   var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color:       var(--text-primary);
+}
+
+.mosque-card__prayer--next .mosque-card__prayer-name,
+.mosque-card__prayer--next .mosque-card__prayer-time {
+  color: var(--accent-dark);
+}
+
+.mosque-card__pending {
+  font-size: var(--text-xs);
+  color:     var(--text-tertiary);
+}
+
+/* ── Eid footer ── */
+.mosque-card__eid {
+  justify-content: center;
+  background:      var(--success-light);
+  padding-block:   var(--space-2);
+}

@@ -1,0 +1,46 @@
+.card {
+  background:    var(--surface-1);
+  border-radius: var(--radius-lg);
+  box-shadow:    var(--shadow-xs);
+  overflow:      hidden;
+  transition:    transform var(--transition-fast),
+                 box-shadow var(--transition-fast);
+}
+
+.card--inset > * { padding-inline: var(--space-4); }
+
+.card--pressable {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card--pressable:active {
+  transform:  scale(0.985);
+  box-shadow: var(--shadow-xs);
+}
+
+@media (hover: hover) {
+  .card--pressable:hover {
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.card__header {
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--separator);
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-3);
+}
+
+.card__body {
+  padding-block: var(--space-4);
+}
+
+.card__footer {
+  padding-block: var(--space-3);
+  border-top:    1px solid var(--separator);
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-2);
+}

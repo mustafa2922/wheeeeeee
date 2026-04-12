@@ -1,0 +1,145 @@
+/* ── Layout ── */
+.admin { min-height: 100dvh; }
+
+.admin__content {
+  /* override default page-content top padding — tabs take the space */
+  padding-top: calc(var(--top-bar-height) + 52px + var(--space-4));
+}
+
+/* ── Tabs ── */
+.admin__tabs {
+  position:       fixed;
+  top:            var(--top-bar-height);
+  left:           0;
+  right:          0;
+  height:         52px;
+  background:     var(--bg-overlay);
+  backdrop-filter: var(--blur-md);
+  border-bottom:  1px solid var(--border-subtle);
+  display:        flex;
+  overflow-x:     auto;
+  z-index:        var(--z-nav);
+  padding-inline: var(--space-4);
+  gap:            var(--space-1);
+  scrollbar-width: none;
+}
+.admin__tabs::-webkit-scrollbar { display: none; }
+
+.admin__tab {
+  display:         flex;
+  align-items:     center;
+  padding-inline:  var(--space-4);
+  white-space:     nowrap;
+  font-size:       var(--text-sm);
+  font-weight:     var(--weight-medium);
+  color:           var(--text-secondary);
+  text-decoration: none;
+  border-bottom:   2px solid transparent;
+  transition:      color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.admin__tab--active {
+  color:        var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── Stats ── */
+.admin__stats {
+  display:               grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:                   var(--space-4);
+  margin-bottom:         var(--space-6);
+}
+
+.admin__stat-label {
+  font-size:   var(--text-sm);
+  color:       var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.admin__stat-value {
+  font-size:   var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color:       var(--accent);
+}
+
+/* ── Forms ── */
+.admin__form-title {
+  font-size:     var(--text-lg);
+  font-weight:   var(--weight-semibold);
+  color:         var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.admin__form-card  { margin-bottom: var(--space-4); }
+.admin__submit-btn { margin-top: var(--space-4); }
+
+.admin__field {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-2);
+  padding:        var(--space-4);
+  border-bottom:  1px solid var(--separator);
+}
+
+.admin__field:last-child { border-bottom: none; }
+
+.admin__label {
+  font-size:   var(--text-sm);
+  font-weight: var(--weight-medium);
+  color:       var(--text-secondary);
+}
+
+.admin__input {
+  height:        44px;
+  background:    var(--surface-2);
+  border:        1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-3);
+  font-family:   var(--font-primary);
+  font-size:     var(--text-base);
+  color:         var(--text-primary);
+  width:         100%;
+  transition:    border-color var(--transition-fast);
+}
+
+.admin__input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Map ── */
+.admin__map-label {
+  font-size:     var(--text-sm);
+  color:         var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.admin__map {
+  height:        280px;
+  border-radius: var(--radius-lg);
+  overflow:      hidden;
+  border:        1px solid var(--border-default);
+  margin-bottom: var(--space-2);
+}
+
+.admin__coords {
+  font-size:     var(--text-xs);
+  color:         var(--text-tertiary);
+  text-align:    center;
+  margin-bottom: var(--space-3);
+}
+
+/* ── Audit ── */
+.admin__audit-row {
+  padding:     var(--space-3) var(--space-4);
+  display:     flex;
+  flex-direction: column;
+  gap:         var(--space-1);
+}
+
+.admin__audit-row--bordered { border-bottom: 1px solid var(--separator); }
+
+.admin__audit-mosque { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-primary); }
+.admin__audit-detail { display: flex; gap: var(--space-2); align-items: center; }
+.admin__audit-field  { font-size: var(--text-sm); color: var(--text-secondary); }
+.admin__audit-arrow  { font-size: var(--text-xs); color: var(--text-tertiary); }
+.admin__audit-new    { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--accent); }
+.admin__audit-meta   { font-size: var(--text-xs); color: var(--text-tertiary); }

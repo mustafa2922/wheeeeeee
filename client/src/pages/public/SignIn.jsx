@@ -36,7 +36,6 @@ function SignIn() {
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
-  const [phone,    setPhone]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [showPass, setShowPass] = useState(false)
 
@@ -47,15 +46,15 @@ function SignIn() {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!email.trim() || !password.trim() || !phone.trim()) {
-      toast({ message: 'Email, password and phone are required', type: 'error' })
+    if (!email.trim() || !password.trim()) {
+      toast({ message: 'Email and password are required', type: 'error' })
       return
     }
 
     setLoading(true)
     try {
       // signIn returns the user object on success
-      const loggedIn = await signIn(email.trim(), password, phone.trim())
+      const loggedIn = await signIn(email.trim(), password)
       toast({ message: 'Signed in successfully!', type: 'success' })
       // Redirect based on the freshly returned user — no stale state
       navigate(dashboardFor(loggedIn.role), { replace: true })
@@ -91,21 +90,6 @@ function SignIn() {
               autoComplete="email"
               autoCapitalize="none"
               inputMode="email"
-              required
-            />
-          </div>
-
-          <div className="signin__field">
-            <label htmlFor="phone" className="signin__label">
-              Phone Number
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              className="signin__input"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="+92 3x..."
               required
             />
           </div>

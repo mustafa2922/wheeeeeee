@@ -50,7 +50,10 @@ router.get('/audit', requireAuth, requireRole('admin', 'super_admin'), async (re
 
   if (!isSuper) {
     const { data, error } = await query
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) {
+      console.error(`[${req.method} ${req.path}]`, error)
+      return res.status(500).json({ error: error.message })
+    }
     
     // Filter by city_id of the mosque being acted upon
     const filtered = data.filter(log => log.mosques?.areas?.city_id === cityId)
@@ -58,7 +61,10 @@ router.get('/audit', requireAuth, requireRole('admin', 'super_admin'), async (re
   }
 
   const { data, error } = await query
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json(data || [])
 })
 
@@ -69,25 +75,81 @@ router.get('/activity', requireAuth, requireRole('admin', 'super_admin'), async 
   const last7Days = new Date()
   last7Days.setDate(last7Days.getDate() - 7)
 
-  let query = supabaseAdmin
+  // Fetch prayer updates for last 7 days
+  let auditQuery = supabaseAdmin
     .from('audit_log')
     .select('created_at, mosques:mosque_id(areas(city_id))')
     .gte('created_at', last7Days.toISOString())
 
-  const { data, error } = await query
-  if (error) return res.status(500).json({ error: error.message })
+  // Fetch recent mosques, users, announcements in parallel
+  const [
+    auditData,
+    recentMosques,
+    recentUsers,
+    recentAnnouncements
+  ] = await Promise.all([
+    auditQuery,
+    supabaseAdmin.from('mosques')
+      .select('id, name, created_at, areas(city_id)')
+      .order('created_at', { ascending: false })
+      .limit(3),
+    supabaseAdmin.from('users')
+      .select('id, display_name, role, created_at, city_id')
+      .order('created_at', { ascending: false })
+      .limit(3),
+    supabaseAdmin.from('announcements')
+      .select('id, title, created_at')
+      .order('created_at', { ascending: false })
+      .limit(3)
+  ])
 
-  const filteredData = isSuper ? data : data.filter(log => log.mosques?.areas?.city_id === cityId)
+  if (auditData.error) {
+    console.error(`[${req.method} ${req.path}]`, auditData.error)
+    return res.status(500).json({ error: auditData.error.message })
+  }
+  if (recentMosques.error) {
+    console.error(`[${req.method} ${req.path}]`, recentMosques.error)
+    return res.status(500).json({ error: recentMosques.error.message })
+  }
+  if (recentUsers.error) {
+    console.error(`[${req.method} ${req.path}]`, recentUsers.error)
+    return res.status(500).json({ error: recentUsers.error.message })
+  }
+  if (recentAnnouncements.error) {
+    console.error(`[${req.method} ${req.path}]`, recentAnnouncements.error)
+    return res.status(500).json({ error: recentAnnouncements.error.message })
+  }
 
-  const activity = Array.from({ length: 7 }).map((_, i) => {
+  // Filter audit data by city for city admin
+  const filteredAuditData = isSuper
+    ? auditData.data
+    : auditData.data.filter(log => log.mosques?.areas?.city_id === cityId)
+
+  // Build prayer updates array
+  const prayer_updates = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date()
     d.setDate(d.getDate() - i)
     const dateStr = d.toISOString().split('T')[0]
-    const count = filteredData.filter(a => a.created_at.startsWith(dateStr)).length
+    const count = filteredAuditData.filter(a => a.created_at.startsWith(dateStr)).length
     return { date: dateStr, count }
   }).reverse()
 
-  res.json(activity)
+  // Filter recent mosques by city for city admin
+  const filteredRecentMosques = isSuper
+    ? recentMosques.data
+    : recentMosques.data.filter(m => m.areas?.city_id === cityId)
+
+  // Filter recent users by city for city admin
+  const filteredRecentUsers = isSuper
+    ? recentUsers.data
+    : recentUsers.data.filter(u => u.city_id === cityId)
+
+  res.json({
+    prayer_updates,
+    recent_mosques: filteredRecentMosques,
+    recent_users: filteredRecentUsers,
+    recent_announcements: recentAnnouncements.data
+  })
 })
 
 // Scoped User List
@@ -102,7 +164,10 @@ router.get('/users', requireAuth, requireRole('admin', 'super_admin'), async (re
   if (!isSuper) {
     // We fetch and filter in JS to catch cases where city_id is null but mosque is in this city
     const { data, error } = await query
-    if (error) return res.status(500).json({ error: error.message })
+    if (error) {
+      console.error(`[${req.method} ${req.path}]`, error)
+      return res.status(500).json({ error: error.message })
+    }
     
     const scoped = data.filter(u => 
       u.role === 'imam' && (u.city_id === cityId || u.mosques?.areas?.city_id === cityId)
@@ -111,13 +176,17 @@ router.get('/users', requireAuth, requireRole('admin', 'super_admin'), async (re
   }
 
   const { data, error } = await query
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json(data || [])
 })
 
 // Scoped User Creation
 router.post('/users', requireAuth, requireRole('admin', 'super_admin'), async (req, res) => {
   let { email, password, display_name, role, country_id, city_id, mosque_id, phone } = req.body
+  const dbRole = role
   const isSuper = req.user.role === 'super_admin'
   const myCity  = req.role.city_id
 
@@ -125,11 +194,17 @@ router.post('/users', requireAuth, requireRole('admin', 'super_admin'), async (r
     return res.status(400).json({ error: 'Email, password, name, and role are required' })
   }
 
+  // Role assignment validation
+  const allowedRoles = isSuper
+    ? ['admin', 'imam', 'user', 'super_admin']
+    : ['imam']
+
+  if (!allowedRoles.includes(dbRole)) {
+    return res.status(403).json({ error: 'You cannot create this role' })
+  }
+
   // Security Scoping
   if (!isSuper) {
-    if (role !== 'imam') {
-      return res.status(403).json({ error: 'City Admins can only create Imams' })
-    }
     city_id = myCity // Enforce their own city
   }
 
@@ -167,7 +242,10 @@ router.post('/users', requireAuth, requireRole('admin', 'super_admin'), async (r
     .select()
     .single()
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   
   await logAudit(null, req.user.sub, 'user_create', 'new', `${dbRole}: ${email}`)
   res.status(201).json(data)
@@ -199,7 +277,7 @@ router.patch('/users/:id', requireAuth, requireRole('admin', 'super_admin'), asy
   const updates = {}
   if (display_name !== undefined) updates.display_name = display_name
   if (role !== undefined && isSuper) {
-     updates.role = role === 'city_admin' ? 'admin' : role
+     updates.role = role
   }
   if (mosque_id !== undefined) {
     updates.mosque_id = mosque_id
@@ -216,7 +294,10 @@ router.patch('/users/:id', requireAuth, requireRole('admin', 'super_admin'), asy
   }
 
   const { data, error } = await supabaseAdmin.from('users').update(updates).eq('id', id).select().single()
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   
   await logAudit(null, req.user.sub, 'user_update', id, 'updated')
   res.json(data)
@@ -243,7 +324,10 @@ router.delete('/users/:id', requireAuth, requireRole('admin', 'super_admin'), as
   }
 
   const { error } = await supabaseAdmin.from('users').delete().eq('id', id)
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   
   await logAudit(null, req.user.sub, 'user_delete', id, 'deleted')
   res.json({ success: true })
@@ -255,7 +339,10 @@ router.post('/countries', requireAuth, requireRole('super_admin'), async (req, r
   if (!name) return res.status(400).json({ error: 'Country name required' })
   const { data, error } = await supabaseAdmin
     .from('countries').insert({ name, code }).select().single()
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json(data)
 })
 
@@ -266,12 +353,15 @@ router.post('/cities', requireAuth, requireRole('super_admin'), async (req, res)
     return res.status(400).json({ error: 'country_id, name, timezone required' })
   const { data, error } = await supabaseAdmin
     .from('cities').insert({ country_id, name, timezone }).select().single()
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json(data)
 })
 
 // Scoped — add a new area
-router.post('/areas', requireAuth, requireRole('super_admin', 'city_admin'), async (req, res) => {
+router.post('/areas', requireAuth, requireRole('super_admin', 'admin'), async (req, res) => {
   let { city_id, name } = req.body
   const isSuper = req.user.role === 'super_admin'
   
@@ -284,47 +374,131 @@ router.post('/areas', requireAuth, requireRole('super_admin', 'city_admin'), asy
 
   const { data, error } = await supabaseAdmin
     .from('areas').insert({ city_id, name }).select().single()
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json(data)
 })
 
 // Scoped Stats
-router.get('/my-stats', requireAuth, requireRole('city_admin', 'super_admin'), async (req, res) => {
+router.get('/my-stats', requireAuth, requireRole('admin', 'super_admin'), async (req, res) => {
   const city_id = req.role.city_id
   const isSuper = req.user.role === 'super_admin'
 
-  const { data: mosques, error: mError } = await supabaseAdmin
-    .from('mosques')
-    .select('id, name, is_active, areas(city_id)')
-    .eq('is_active', true)
+  if (isSuper) {
+    // Super admin gets global stats
+    const [
+      mosques,
+      imams,
+      areas,
+      subscribers
+    ] = await Promise.all([
+      supabaseAdmin.from('mosques').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('role', 'imam'),
+      supabaseAdmin.from('areas').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('push_subscriptions').select('user_id', { count: 'exact', head: true })
+    ])
 
-  if (mError) return res.status(500).json({ error: mError.message })
+    return res.json({
+      mosque_count: mosques.count || 0,
+      imam_count: imams.count || 0,
+      area_count: areas.count || 0,
+      subscribers: subscribers.count || 0
+    })
+  }
 
-  const scoped = (!isSuper && city_id && mosques)
-    ? mosques.filter(m => m.areas?.city_id === city_id)
-    : (mosques || [])
+  // City admin gets city-scoped stats
+  const [mosques, imams, areas] = await Promise.all([
+    supabaseAdmin.from('mosques').select('id', { count: 'exact', head: true })
+      .eq('city_id', city_id),
+    supabaseAdmin.from('users').select('id', { count: 'exact', head: true })
+      .eq('role', 'imam').eq('city_id', city_id),
+    supabaseAdmin.from('areas').select('id', { count: 'exact', head: true })
+      .eq('city_id', city_id)
+  ])
 
-  const { data: imams, error: iError } = await supabaseAdmin
-    .from('users')
-    .select('id, role, city_id, mosques!mosque_id(areas(city_id))')
-    .eq('role', 'imam')
+  // Get mosque IDs for subscriber query
+  const { data: mosqueIds } = await supabaseAdmin.from('mosques')
+    .select('id').eq('city_id', city_id)
 
-  if (iError) return res.status(500).json({ error: iError.message })
+  const mosqueIdList = mosqueIds?.map(m => m.id) || []
+  const subscribers = mosqueIdList.length > 0
+    ? await supabaseAdmin.from('push_subscriptions').select('user_id', { count: 'exact', head: true })
+        .in('mosque_id', mosqueIdList)
+    : { count: 0 }
 
-  const scopedImams = (!isSuper && city_id && imams)
-    ? imams.filter(i => i.city_id === city_id || i.mosques?.areas?.city_id === city_id)
-    : (imams || [])
-
-  res.json({ mosque_count: scoped.length, imam_count: scopedImams.length })
+  res.json({
+    mosque_count: mosques.count || 0,
+    imam_count: imams.count || 0,
+    area_count: areas.count || 0,
+    subscribers: subscribers.count || 0
+  })
 })
 
-// Scoped — update mosque
+// Global stats (super admin only)
+router.get('/global-stats', requireAuth, requireRole('super_admin'), async (req, res) => {
+  const [
+    countries,
+    cities,
+    areas,
+    mosques,
+    mosques_active,
+    users_by_role,
+    subscribers,
+    announcements
+  ] = await Promise.all([
+    supabaseAdmin.from('countries').select('id', { count: 'exact', head: true }),
+    supabaseAdmin.from('cities').select('id', { count: 'exact', head: true }),
+    supabaseAdmin.from('areas').select('id', { count: 'exact', head: true }),
+    supabaseAdmin.from('mosques').select('id', { count: 'exact', head: true }),
+    supabaseAdmin.from('users').select('role'),
+    supabaseAdmin.from('push_subscriptions').select('user_id', { count: 'exact', head: true }),
+    supabaseAdmin.from('announcements').select('id', { count: 'exact', head: true })
+  ])
+
+  // Derive role counts from users_by_role
+  const admins = users_by_role?.data?.filter(u => u.role === 'admin').length || 0
+  const imams = users_by_role?.data?.filter(u => u.role === 'imam').length || 0
+  const users = users_by_role?.data?.filter(u => u.role === 'user').length || 0
+
+  res.json({
+    countries: countries.count || 0,
+    cities: cities.count || 0,
+    neighborhoods: areas.count || 0,
+    mosques_total: mosques.count || 0,
+    mosques_active: mosques_active.count || 0,
+    admins,
+    imams,
+    users,
+    subscribers: subscribers.count || 0,
+    announcements_sent: announcements.count || 0
+  })
+})
+
+// Get announcements (Super Admin only)
+router.get('/announcements', requireAuth, requireRole('super_admin'), async (req, res) => {
+  const { limit = 20, offset = 0 } = req.query
+  const { data, error } = await supabaseAdmin
+    .from('announcements')
+    .select('*, users:sent_by(display_name)')
+    .order('created_at', { ascending: false })
+    .range(Number(offset), Number(offset) + Number(limit) - 1)
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
+  res.json(data || [])
+})
+
+// Scoped — update mosque (name, location, imam assignment)
 router.patch('/mosques/:id', requireAuth, requireRole('admin', 'super_admin'), async (req, res) => {
   const { id } = req.params
   const isSuper = req.user.role === 'super_admin'
   const myCity  = req.role.city_id
-  const { name, area_id, is_active } = req.body
+  const { name, area_id, imam_id } = req.body
 
+  // Check permissions
   if (!isSuper) {
     const { data: m } = await supabaseAdmin.from('mosques').select('areas(city_id)').eq('id', id).single()
     if (!m || m.areas?.city_id !== myCity) {
@@ -332,24 +506,77 @@ router.patch('/mosques/:id', requireAuth, requireRole('admin', 'super_admin'), a
     }
   }
 
-  const updates = {}
-  if (name !== undefined)      updates.name      = name
-  if (area_id !== undefined)   updates.area_id   = area_id
-  if (is_active !== undefined) updates.is_active = is_active
+  // If area_id is changing, validate it's in the correct city
+  if (area_id !== undefined && !isSuper) {
+    const { data: area } = await supabaseAdmin.from('areas').select('city_id').eq('id', area_id).single()
+    if (!area || area.city_id !== myCity) {
+      return res.status(403).json({ error: 'Area not in your city' })
+    }
+  }
 
-  const { data, error } = await supabaseAdmin.from('mosques').update(updates).eq('id', id).select().single()
-  if (error) return res.status(500).json({ error: error.message })
-  
+  // Update mosque
+  const updates = {}
+  if (name !== undefined) updates.name = name
+  if (area_id !== undefined) updates.area_id = area_id
+
+  const { data: mosque, error } = await supabaseAdmin.from('mosques').update(updates).eq('id', id).select().single()
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
+
+  // Handle imam assignment/unassignment
+  if (imam_id !== undefined) {
+    if (imam_id === null) {
+      // Unassign current imam
+      await supabaseAdmin.from('users').update({ mosque_id: null, city_id: null }).eq('mosque_id', id)
+    } else {
+      // Assign new imam
+      const { data: imam } = await supabaseAdmin.from('users').select('id, role, city_id').eq('id', imam_id).single()
+      if (!imam || imam.role !== 'imam') {
+        return res.status(400).json({ error: 'Invalid imam ID' })
+      }
+
+      // Check if imam is in the correct city
+      if (!isSuper && imam.city_id !== myCity) {
+        return res.status(403).json({ error: 'Imam not in your city' })
+      }
+
+      // Unassign any previous imam from this mosque
+      await supabaseAdmin.from('users').update({ mosque_id: null, city_id: null }).eq('mosque_id', id)
+
+      // Assign new imam
+      await supabaseAdmin.from('users').update({ mosque_id: id, city_id: mosque.city_id }).eq('id', imam_id)
+    }
+  }
+
+  // Fetch updated mosque with location and imam info
+  const { data: updatedMosque } = await supabaseAdmin
+    .from('mosques')
+    .select(`
+      *,
+      areas(id, name, cities(id, name, timezone)),
+      users:imam_id(id, display_name)
+    `)
+    .eq('id', id)
+    .single()
+
+  // Add computed location field
+  const location = updatedMosque.areas?.cities
+    ? `${updatedMosque.areas.name}, ${updatedMosque.areas.cities.name}`
+    : updatedMosque.areas?.name || ''
+
   await logAudit(id, req.user.sub, 'mosque_update', 'edit', name || 'updated')
-  res.json(data)
+  res.json({ ...updatedMosque, location })
 })
 
-// Scoped — soft delete mosque
+// Scoped — permanent delete mosque (with imam assignment check)
 router.delete('/mosques/:id', requireAuth, requireRole('admin', 'super_admin'), async (req, res) => {
   const { id } = req.params
   const isSuper = req.user.role === 'super_admin'
   const myCity  = req.role.city_id
 
+  // Check permissions
   if (!isSuper) {
     const { data: m } = await supabaseAdmin.from('mosques').select('areas(city_id)').eq('id', id).single()
     if (!m || m.areas?.city_id !== myCity) {
@@ -357,11 +584,35 @@ router.delete('/mosques/:id', requireAuth, requireRole('admin', 'super_admin'), 
     }
   }
 
-  const { error } = await supabaseAdmin.from('mosques').update({ is_active: false }).eq('id', id)
-  if (error) return res.status(500).json({ error: error.message })
-  
-  await logAudit(id, req.user.sub, 'mosque_deactivate', 'active', 'inactive')
-  res.json({ success: true, message: 'Mosque deactivated (soft delete)' })
+  // Check if any imam is assigned to this mosque
+  const { data: assignedImam } = await supabaseAdmin
+    .from('users')
+    .select('id, display_name')
+    .eq('role', 'imam')
+    .eq('mosque_id', id)
+    .single()
+
+  if (assignedImam) {
+    return res.status(400).json({ 
+      error: `Cannot delete mosque: Imam ${assignedImam.display_name} is assigned to this mosque. Please unassign the imam first.` 
+    })
+  }
+
+  // Delete related data in a transaction-like sequence
+  // Note: Supabase doesn't support transactions, but we delete in dependency order
+  try {
+    await supabaseAdmin.from('prayer_times').delete().eq('mosque_id', id)
+    await supabaseAdmin.from('eid_prayers').delete().eq('mosque_id', id)
+    await supabaseAdmin.from('push_subscriptions').delete().eq('mosque_id', id)
+    await supabaseAdmin.from('audit_log').delete().eq('mosque_id', id)
+    await supabaseAdmin.from('mosques').delete().eq('id', id)
+  } catch (err) {
+    console.error(`[${req.method} ${req.path}]`, err)
+    return res.status(500).json({ error: err.message })
+  }
+
+  await logAudit(id, req.user.sub, 'mosque_delete', id, 'deleted')
+  res.json({ success: true, message: 'Mosque permanently deleted' })
 })
 
 export default router

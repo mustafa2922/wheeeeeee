@@ -10,7 +10,7 @@ const router = Router()
 const PRAYER_FIELDS = ['fajr', 'zuhr', 'asr', 'isha', 'jumma']
 
 // Imam updates prayer times for their mosque
-router.patch('/:mosque_id', requireAuth, requireRole('imam', 'city_admin', 'super_admin'), async (req, res) => {
+router.patch('/:mosque_id', requireAuth, requireRole('imam', 'admin', 'super_admin'), async (req, res) => {
   const { mosque_id } = req.params
 
   // Imam can only update their own mosque
@@ -34,7 +34,10 @@ router.patch('/:mosque_id', requireAuth, requireRole('imam', 'city_admin', 'supe
 
   const { error } = await supabaseAdmin
     .from('prayer_times').update(updates).eq('mosque_id', mosque_id)
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
 
   // Write audit log entries for each changed field
   const auditRows = Object.keys(updates)
@@ -56,7 +59,7 @@ router.patch('/:mosque_id', requireAuth, requireRole('imam', 'city_admin', 'supe
 })
 
 // Post Eid prayer
-router.post('/:mosque_id/eid', requireAuth, requireRole('imam', 'city_admin', 'super_admin'), async (req, res) => {
+router.post('/:mosque_id/eid', requireAuth, requireRole('imam', 'admin', 'super_admin'), async (req, res) => {
   const { mosque_id } = req.params
   const { eid_type, prayer_date, prayer_time } = req.body
 
@@ -74,7 +77,10 @@ router.post('/:mosque_id/eid', requireAuth, requireRole('imam', 'city_admin', 's
     mosque_id, eid_type, prayer_date, prayer_time, year, posted_by: req.user.sub
   }).select().single()
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
 
   await queuePushNotification({ mosque_id, type: 'eid_posted', eid_type, prayer_date, prayer_time })
 
@@ -96,7 +102,7 @@ router.get('/:mosque_id/maghrib', async (req, res) => {
 })
 
 // Audit log for a mosque
-router.get('/:mosque_id/audit', requireAuth, requireRole('imam', 'city_admin', 'super_admin'), async (req, res) => {
+router.get('/:mosque_id/audit', requireAuth, requireRole('imam', 'admin', 'super_admin'), async (req, res) => {
   if (req.role.role === 'imam' && req.role.mosque_id !== req.params.mosque_id)
     return res.status(403).json({ error: 'Not your mosque' })
 

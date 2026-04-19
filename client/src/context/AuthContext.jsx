@@ -25,6 +25,10 @@ export function AuthProvider({ children }) {
     })
     .then(res => {
       if (res.status === 401) signOut()
+      // any other status: keep user logged in
+    })
+    .catch(() => {
+      // network error (server cold start, offline): keep user logged in
     })
     .finally(() => setLoading(false))
   }, [])
@@ -40,13 +44,13 @@ export function AuthProvider({ children }) {
     return localStorage.getItem(TOKEN_KEY)
   }
 
-  async function signIn(email, password, phone) {
+  async function signIn(email, password) {
     setLoading(true)
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ email, password, phone }),
+        body:    JSON.stringify({ email, password }),
       })
 
       const contentType = res.headers.get('content-type')

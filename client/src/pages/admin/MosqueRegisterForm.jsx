@@ -41,15 +41,15 @@ function MosqueRegisterForm({ onSuccess }) {
     }
   }, [isSuper, myCityId])
 
-  // 2. Drill Down: Fetch Cities when Country changes
+  // 2. Drill Down: Fetch Cities when Country changes (Super Admin only)
   useEffect(() => {
-    if (selectedCountryId) {
+    if (isSuper && selectedCountryId) {
       setCities([])
       setSelectedCityId('')
       setForm(prev => ({ ...prev, area_id: '' }))
       mosquesApi.getCities(selectedCountryId).then(setCities)
     }
-  }, [selectedCountryId])
+  }, [selectedCountryId, isSuper])
 
   // 3. Init Leaflet map
   useEffect(() => {
@@ -84,7 +84,7 @@ function MosqueRegisterForm({ onSuccess }) {
         name_roman: form.name_roman || null,
         area_id:    Number(form.area_id),
         city_id:    Number(selectedCityId),
-        country_id: Number(isSuper ? selectedCountryId : countries[0]?.id || 1), // Fallback logic
+        country_id: Number(isSuper ? selectedCountryId : selectedCountryId),
         lat:        parseFloat(form.lat),
         lng:        parseFloat(form.lng),
       })
@@ -146,31 +146,48 @@ function MosqueRegisterForm({ onSuccess }) {
                   {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               ) : (
-                <input className="super__form-input" value="Your Assigned City" disabled />
+                <select className="super__form-input" value={selectedCityId} disabled>
+                  {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               )}
             </div>
 
             {/* Tier 3: Neighborhood */}
             <div className="super__form-group">
               <label className="super__form-label">Neighborhood / Area</label>
-              {!selectedCityId ? (
-                <p className="mosque-reg__helper" style={{ fontSize: '11px', marginTop: '4px' }}>
-                  Please select a city to see areas.
-                </p>
-              ) : areas.length === 0 ? (
-                <p style={{ color: 'var(--danger)', fontSize: '11px', fontWeight: 700, marginTop: '8px' }}>
-                  ⚠ No areas in this city. Add one in Systems Tab.
-                </p>
-              ) : (
+              {isSuper ? (
                 <select className="super__form-input"
                   value={form.area_id}
                   onChange={e => handleChange('area_id', e.target.value)}
+                  disabled={!selectedCityId}
                 >
                   <option value="">Select area...</option>
                   {areas.map(a => (
                     <option key={a.id} value={a.id}>{a.name}</option>
                   ))}
                 </select>
+              ) : (
+                <>
+                  {!selectedCityId ? (
+                    <p className="mosque-reg__helper" style={{ fontSize: '11px', marginTop: '4px' }}>
+                      Please select a city to see areas.
+                    </p>
+                  ) : areas.length === 0 ? (
+                    <p style={{ color: 'var(--danger)', fontSize: '11px', fontWeight: 700, marginTop: '8px' }}>
+                      ⚠ No areas in this city. Add one in Systems Tab.
+                    </p>
+                  ) : (
+                    <select className="super__form-input"
+                      value={form.area_id}
+                      onChange={e => handleChange('area_id', e.target.value)}
+                    >
+                      <option value="">Select area...</option>
+                      {areas.map(a => (
+                        <option key={a.id} value={a.id}>{a.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </>
               )}
             </div>
           </div>

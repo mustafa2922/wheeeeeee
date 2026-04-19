@@ -37,3 +37,34 @@ export async function requireAuth(req, res, next) {
     res.status(401).json({ error: 'Invalid or expired token' })
   }
 }
+
+/**
+ * Optional auth - authenticates if token provided, but doesn't require it.
+ * Used for endpoints that should work for both authenticated and unauthenticated users.
+ */
+export async function optionalAuth(req, res, next) {
+  const header = req.headers.authorization
+  if (!header?.startsWith('Bearer ')) {
+    return next() // No token, continue without auth
+  }
+
+  const token = header.slice(7)
+
+  try {
+    const payload = verifyToken(token)
+    const user = await getUserById(payload.sub)
+    
+    if (user && user.is_active !== false) {
+      req.user = { ...user, sub: user.id }
+      req.role = {
+        role:      user.role,
+        mosque_id: user.mosque_id,
+        city_id:   user.city_id,
+      }
+    }
+  } catch (err) {
+    // Ignore auth errors for optional auth - just continue without req.user
+  }
+  
+  next()
+}

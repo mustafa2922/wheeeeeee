@@ -87,6 +87,14 @@ const ar = {
     eidDate:      'التاريخ',
     eidTime:      'الوقت',
     auditLog:     'سجل التغييرات',
+    tabs: {
+      times: 'أوقات الصلاة',
+      eid: 'صلاة العيد',
+      history: 'السجل',
+    },
+    maghribAuto: 'تلقائي — الغروب',
+    unsavedChanges: 'تغييرات غير محفوظة',
+    noChanges: 'لا توجد تغييرات',
   },
   errors: {
     generic:      'حدث خطأ ما. حاول مجدداً.',

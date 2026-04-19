@@ -1,12 +1,12 @@
 import { Router } from 'express'
 import { supabaseAdmin } from '../lib/supabase.js'
-import { requireAuth } from '../middleware/requireAuth.js'
+import { requireAuth, optionalAuth } from '../middleware/requireAuth.js'
 import { requireRole } from '../middleware/requireRole.js'
 
 const router = Router()
 
 // Public — get all mosques with today's times, filterable by area/city
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   const { area_id, city_id, lat, lng } = req.query
 
   let query = supabaseAdmin
@@ -16,13 +16,27 @@ router.get('/', async (req, res) => {
       areas(id, name, city_id, cities(id, name, timezone)),
       prayer_times(fajr, zuhr, asr, isha, jumma, maghrib_auto, updated_at)
     `)
-    .eq('is_active', true)
 
   if (area_id) query = query.eq('area_id', area_id)
   if (city_id) query = query.eq('areas.city_id', city_id)
 
   const { data, error } = await query
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
+
+  // Filter out mosques with incomplete prayer times (for public users)
+  // Authenticated users (any role) bypass this filter
+  const isAuthenticated = !!req.user
+  if (!isAuthenticated && data) {
+    const filtered = data.filter(m => {
+      const pt = Array.isArray(m.prayer_times) ? m.prayer_times[0] : m.prayer_times
+      return pt && pt.fajr && pt.zuhr && pt.asr && pt.isha && pt.jumma
+    })
+    data.length = 0
+    data.push(...filtered)
+  }
 
   // If lat/lng provided, sort by distance (Haversine)
   if (lat && lng) {
@@ -35,7 +49,20 @@ router.get('/', async (req, res) => {
     })
   }
 
-  res.json(data)
+  // Normalize prayer_times from array to object (Supabase returns array for one-to-one)
+  // Add computed location field
+  const normalized = data.map(m => {
+    const location = m.areas?.cities
+      ? `${m.areas.name}, ${m.areas.cities.name}`
+      : m.areas?.name || ''
+    return {
+      ...m,
+      location,
+      prayer_times: Array.isArray(m.prayer_times) ? m.prayer_times[0] : m.prayer_times
+    }
+  })
+
+  res.json(normalized)
 })
 
 // Public — single mosque detail
@@ -51,18 +78,27 @@ router.get('/:id', async (req, res) => {
     .eq('id', req.params.id)
     .single()
 
-  if (error) return res.status(404).json({ error: 'Mosque not found' })
-  res.json(data)
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(404).json({ error: 'Mosque not found' })
+  }
+
+  // Add computed location field
+  const location = data.areas?.cities
+    ? `${data.areas.name}, ${data.areas.cities.name}`
+    : data.areas?.name || ''
+
+  res.json({ ...data, location })
 })
 
 // Admin registers a mosque
-router.post('/', requireAuth, requireRole('city_admin', 'super_admin'), async (req, res) => {
+router.post('/', requireAuth, requireRole('admin', 'super_admin'), async (req, res) => {
   const { name, name_roman, area_id, city_id, country_id, lat, lng } = req.body
   if (!name || !area_id || !city_id || !country_id || !lat || !lng)
     return res.status(400).json({ error: 'name, area_id, city_id, country_id, lat, lng required' })
 
   // City admin scope check
-  if (req.role.role === 'city_admin') {
+  if (req.role.role === 'admin') {
     const { data: area } = await supabaseAdmin
       .from('areas').select('city_id').eq('id', area_id).single()
     if (!area || area.city_id !== req.role.city_id)
@@ -81,22 +117,21 @@ router.post('/', requireAuth, requireRole('city_admin', 'super_admin'), async (r
       lng, 
       created_by: req.user.sub 
     })
-    .select().single()
+    .select(`
+      *,
+      areas(id, name, city_id, cities(id, name, timezone))
+    `)
+    .single()
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
 
   // Create empty prayer_times row for this mosque
   await supabaseAdmin.from('prayer_times').insert({ mosque_id: mosque.id })
 
   res.json(mosque)
-})
-
-// Admin deactivates a mosque
-router.patch('/:id/deactivate', requireAuth, requireRole('city_admin', 'super_admin'), async (req, res) => {
-  const { error } = await supabaseAdmin
-    .from('mosques').update({ is_active: false }).eq('id', req.params.id)
-  if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
 })
 
 // Geography — public

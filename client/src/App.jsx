@@ -15,7 +15,7 @@ const Subscriptions = lazy(() => import('./pages/public/Subscriptions.jsx'))
 const SettingsPage  = lazy(() => import('./pages/public/Settings.jsx'))
 const SignIn        = lazy(() => import('./pages/public/SignIn.jsx'))
 const ImamPanel     = lazy(() => import('./pages/imam/ImamPanel.jsx'))
-const AdminPanel    = lazy(() => import('./pages/super/SuperPanel.jsx'))
+const AdminPanel    = lazy(() => import('./pages/admin/AdminPanel.jsx'))
 const SuperPanel    = lazy(() => import('./pages/super/SuperPanel.jsx'))
 const Register = lazy(() => import('./pages/public/Register.jsx'))
 
@@ -89,7 +89,7 @@ function App() {
               path="admin/*"
               element={
                 <Protected requiredRole="admin">
-                  <AdminPanel />
+                  <SuperPanel />
                 </Protected>
               }
             />

@@ -197,7 +197,7 @@ function ActivityChart({ data = [] }) {
           </linearGradient>
         </defs>
         <path d={pathD} fill="url(#gradient)" />
-        <path d={strokeD} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeJoin="round" />
+        <path d={strokeD} fill="none" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         {data.map((d, i) => {
            const x = (i / (data.length - 1)) * 400
            const y = 100 - (d.count / Math.max(...data.map(d => d.count), 5)) * 80
@@ -254,7 +254,7 @@ function SuperOverview() {
         <Widget label="Uptime"  value="99.9%" trend="Stable" />
       </div>
 
-      <ActivityChart data={activity} />
+      <ActivityChart data={activity?.prayer_updates || []} />
 
       <Card variant="glass" className="super__info-card">
         <Card.Body>
@@ -364,6 +364,8 @@ function AdminManager({ roleFilter }) {
     if (isCityAdmin) {
       data.role = 'imam'
       data.city_id = myCityId
+    } else if (isSuper) {
+      data.role = selectedRole
     }
 
     if (!data.password && !isAddMode) delete data.password
@@ -469,12 +471,12 @@ function AdminManager({ roleFilter }) {
             </div>
           )}
 
-          {selectedRole === 'admin' && isSuper && (
+          {(selectedRole === 'admin' || selectedRole === 'imam') && isSuper && (
             <div className="super__form-group">
               <label className="super__form-label">Regional Scope (City)</label>
-              <select 
-                name="city_id" 
-                className="super__form-input" 
+              <select
+                name="city_id"
+                className="super__form-input"
                 value={selectedCityId}
                 onChange={e => setSelectedCityId(e.target.value)}
                 disabled={!selectedCountryId}
@@ -489,7 +491,7 @@ function AdminManager({ roleFilter }) {
           {selectedRole === 'imam' && (
             <div className="super__form-group">
               <label className="super__form-label">Location Scope (Masjid)</label>
-              <select name="mosque_id" className="super__form-input" defaultValue={editUser?.mosque_id} required>
+              <select name="mosque_id" className="super__form-input" defaultValue={editUser?.mosque_id} disabled={isSuper && !selectedCityId} required>
                 <option value="">Select masjid...</option>
                 {displayMosques.map(m => (
                    <option key={m.id} value={m.id}>{m.name}</option>
@@ -645,23 +647,71 @@ function MosqueManager() {
   const [mosques, setMosques] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [confirmDeactivate, setConfirmDeactivate] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [editMosque, setEditMosque] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [countries, setCountries] = useState([])
+  const [cities, setCities] = useState([])
+  const [areas, setAreas] = useState([])
+  const [imams, setImams] = useState([])
+  const [selectedCountryId, setSelectedCountryId] = useState('')
+  const [editForm, setEditForm] = useState({ name: '', area_id: '', imam_id: '' })
 
   const fetchMosques = () => mosquesApi.getAll().then(setMosques).finally(() => setLoading(false))
-  useEffect(() => { fetchMosques() }, [])
+  
+  const fetchCountries = () => {
+    if (isSuper) mosquesApi.getCountries().then(setCountries)
+  }
+  
+  const fetchImams = () => {
+    adminApi.getUsers().then(users => setImams(users.filter(u => u.role === 'imam')))
+  }
+
+  useEffect(() => { 
+    fetchMosques()
+    fetchCountries()
+    fetchImams()
+  }, [])
+
+  useEffect(() => {
+    if (selectedCountryId) {
+      mosquesApi.getCities(selectedCountryId).then(setCities)
+      setSelectedCountryId('')
+    }
+  }, [selectedCountryId])
+
+  useEffect(() => {
+    if (editMosque) {
+      mosquesApi.getAreas(editMosque.city_id).then(setAreas)
+      setEditForm({ name: editMosque.name, area_id: editMosque.area_id, imam_id: editMosque.users?.id || '' })
+    }
+  }, [editMosque])
 
   const filtered = useMemo(() => 
     mosques.filter(m => (isSuper || m.areas?.city_id == myCityId) && m.name?.toLowerCase().includes(search.toLowerCase())),
     [mosques, search, isSuper, myCityId]
   )
 
-  async function handleSoftDelete() {
+  async function handleDelete() {
     setActionLoading(true)
     try {
-      await adminApi.deleteMosque(confirmDeactivate.id)
-      toast({ message: 'Masjid status changed to Inactive', type: 'success' })
-      setConfirmDeactivate(null)
+      await adminApi.deleteMosque(confirmDelete.id)
+      toast({ message: 'Masjid permanently deleted', type: 'success' })
+      setConfirmDelete(null)
+      fetchMosques()
+    } catch (err) {
+      toast({ message: err.message, type: 'error' })
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleEdit() {
+    setActionLoading(true)
+    try {
+      await adminApi.updateMosque(editMosque.id, editForm)
+      toast({ message: 'Masjid updated successfully', type: 'success' })
+      setEditMosque(null)
       fetchMosques()
     } catch (err) {
       toast({ message: err.message, type: 'error' })
@@ -692,17 +742,19 @@ function MosqueManager() {
             <div className="super__row-info">
               <p className="super__row-title">{m.name}</p>
               <p className="super__row-sub">
-                {m.areas?.name ?? 'Assigned Area'} · {m.is_active ? 'Active' : 'Inactive'}
+                {m.location || (m.areas?.name ?? 'Assigned Area')} · Imam: {m.users?.display_name || 'Unassigned'}
               </p>
             </div>
             <div className="super__row-actions">
-              <Badge variant={m.is_active ? 'success' : 'neutral'}>
-                {m.is_active ? 'Live' : 'Off'}
-              </Badge>
+              <button 
+                className="super__btn-icon" 
+                onClick={() => setEditMosque(m)}
+              >
+                <Icons.Edit />
+              </button>
               <button 
                 className="super__btn-icon super__btn-icon--danger" 
-                onClick={() => setConfirmDeactivate(m)}
-                disabled={!m.is_active}
+                onClick={() => setConfirmDelete(m)}
               >
                 <Icons.X />
               </button>
@@ -712,18 +764,64 @@ function MosqueManager() {
       </div>
 
       <ConfirmDialog 
-        isOpen={!!confirmDeactivate} 
-        title="Deactivate Masjid?" 
-        message={`Are you sure you want to turn off ${confirmDeactivate?.name}?`} 
-        onConfirm={handleSoftDelete}
-        onCancel={() => setConfirmDeactivate(null)}
-        confirmText="Deactivate"
+        isOpen={!!confirmDelete} 
+        title="Delete Masjid?" 
+        message={`Are you sure you want to permanently delete ${confirmDelete?.name}? This action cannot be undone.`} 
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+        confirmText="Delete"
       />
+
+      <Modal title="Edit Masjid" isOpen={!!editMosque} onClose={() => setEditMosque(null)}>
+        <form onSubmit={e => { e.preventDefault(); handleEdit(); }}>
+          <div className="super__form-group">
+            <label className="super__form-label">Masjid Name</label>
+            <input 
+              className="super__form-input" 
+              value={editForm.name} 
+              onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+              required 
+            />
+          </div>
+
+          <div className="super__form-group">
+            <label className="super__form-label">Location / Area</label>
+            <select 
+              className="super__form-input" 
+              value={editForm.area_id} 
+              onChange={e => setEditForm({ ...editForm, area_id: e.target.value })}
+              required
+            >
+              <option value="">Select area...</option>
+              {areas?.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+
+          <div className="super__form-group">
+            <label className="super__form-label">Assign Imam (Optional)</label>
+            <select 
+              className="super__form-input" 
+              value={editForm.imam_id} 
+              onChange={e => setEditForm({ ...editForm, imam_id: e.target.value })}
+            >
+              <option value="">Unassigned</option>
+              {imams.filter(i => !i.mosque_id || i.mosque_id === editMosque?.id).map(i => (
+                <option key={i.id} value={i.id}>{i.display_name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <Button variant="primary" fullWidth loading={actionLoading}>Save Changes</Button>
+            <Button variant="neutral" type="button" onClick={() => setEditMosque(null)}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
 
       <Routes>
         <Route path="new" element={
           <Modal title="Register Masjid" isOpen onClose={() => navigate(navigatePath)}>
-             <MosqueRegisterForm onSuccess={() => { fetchMosques(); navigate(navigatePath) }} />
+             <MosqueRegisterForm onSuccess={() => { sessionStorage.removeItem('mosques_cache'); fetchMosques(); navigate(navigatePath) }} />
           </Modal>
         } />
       </Routes>

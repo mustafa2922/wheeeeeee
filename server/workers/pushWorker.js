@@ -14,7 +14,30 @@ webpush.setVapidDetails(
 const connection = new Redis(process.env.REDIS_URL, { maxRetriesPerRequest: null })
 
 const worker = new Worker('push-notifications', async (job) => {
-  const { mosque_id, type, ...rest } = job.data
+  const { mosque_id, type, subscription_json, ...rest } = job.data
+
+  // For announcement type, subscription_json is pre-fetched in the announce route
+  if (type === 'announcement' && subscription_json) {
+    const title = rest.title || 'اعلان'
+    const body = rest.body || ''
+    const payload = JSON.stringify({ title, body, type })
+
+    try {
+      await webpush.sendNotification(subscription_json, payload)
+    } catch (err) {
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        // Subscription expired — clean up from device_subscriptions
+        await supabaseAdmin
+          .from('device_subscriptions')
+          .delete()
+          .eq('subscription_json->>endpoint', subscription_json.endpoint)
+      }
+    }
+    return
+  }
+
+  // For times_updated and eid_posted, fetch subscriptions from push_subscriptions
+  if (!mosque_id) return
 
   // Fetch mosque name for notification body
   const { data: mosque } = await supabaseAdmin

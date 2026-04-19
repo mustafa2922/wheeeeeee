@@ -87,6 +87,14 @@ const ur = {
     eidDate:      'تاریخ',
     eidTime:      'وقت',
     auditLog:     'تبدیلیوں کی تاریخ',
+    tabs: {
+      times: 'نماز کے اوقات',
+      eid: 'عید نماز',
+      history: 'تاریخچہ',
+    },
+    maghribAuto: 'خودکار — غروب آفتاب',
+    unsavedChanges: 'غیر محفوظ تبدیلیاں',
+    noChanges: 'کوئی تبدیلی نہیں',
   },
   errors: {
     generic:      'کچھ غلط ہوا۔ دوبارہ کوشش کریں۔',

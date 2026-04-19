@@ -105,6 +105,14 @@ const en = {
     eidDate:         'Date',
     eidTime:         'Time',
     auditLog:        'Change History',
+    tabs: {
+      times: 'Prayer Times',
+      eid: 'Eid Prayer',
+      history: 'History',
+    },
+    maghribAuto: 'Auto — sunset',
+    unsavedChanges: 'Unsaved changes',
+    noChanges: 'No changes',
   },
 
   // ─── Errors / feedback ───

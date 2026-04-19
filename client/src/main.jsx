@@ -9,7 +9,28 @@ import './styles/global.css'
 // Register service worker for offline support + push notifications
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(console.error)
+    navigator.serviceWorker.register('/sw.js')
+      .then(async reg => {
+        const token = localStorage.getItem('waqt_token')
+        if (!token) return  // not logged in, skip
+
+        const existing = await reg.pushManager.getSubscription()
+        if (!existing) return  // user hasn't granted permission yet
+
+        // Save device subscription (fire and forget)
+        fetch(`${import.meta.env.VITE_API_URL}/api/push/device-subscribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            subscription: existing.toJSON(),
+            user_agent: navigator.userAgent
+          })
+        }).catch(() => {})  // silent failure OK
+      })
+      .catch(console.error)
   })
 }
 

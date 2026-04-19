@@ -57,11 +57,11 @@ router.post('/login',   async (req, res) => loginHandler(req, res))
 router.post('/sign-in', async (req, res) => loginHandler(req, res))
 
 async function loginHandler(req, res) {
-  const { email, password, phone } = req.body
+  const { email, password } = req.body
   console.log(`Login attempt: ${email?.toLowerCase()} via ${req.path}`)
 
-  if (!email || !password || !phone)
-    return res.status(400).json({ error: 'email, password and phone required' })
+  if (!email || !password)
+    return res.status(400).json({ error: 'email and password required' })
 
   const { data: user, error } = await supabaseAdmin
     .from('users')
@@ -82,8 +82,8 @@ async function loginHandler(req, res) {
     return res.status(401).json({ error: 'Invalid credentials' })
 
   const valid = await verifyPassword(password, user.password)
-  if (!valid || user.phone !== phone) {
-    console.log(`Login failed: invalid creds (pass or phone) for ${email}`)
+  if (!valid) {
+    console.log(`Login failed: invalid password for ${email}`)
     return res.status(401).json({ error: 'Invalid credentials' })
   }
 
@@ -123,7 +123,10 @@ router.post('/create-admin', requireAuth, requireRole('super_admin'), async (req
     .select('id, email, role, city_id')
     .single()
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json({ user_id: data.id })
 })
 
@@ -174,7 +177,10 @@ router.post('/create-imam', requireAuth, requireRole('admin', 'super_admin'), as
     .select('id, email, role, mosque_id')
     .single()
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json({ user_id: data.id })
 })
 
@@ -197,7 +203,10 @@ router.patch('/update-credentials', requireAuth, requireRole('super_admin'), asy
     .update(updates)
     .eq('id', target_user_id)
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error(`[${req.method} ${req.path}]`, error)
+    return res.status(500).json({ error: error.message })
+  }
   res.json({ success: true })
 })
 

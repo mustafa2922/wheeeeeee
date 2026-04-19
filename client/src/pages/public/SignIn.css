@@ -82,6 +82,31 @@
   border-color: var(--accent);
 }
 
+.signin__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.signin__eye-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+
+.signin__eye-btn:hover {
+  opacity: 0.8;
+}
+
 .signin__register-hint {
   text-align: center;
   font-size:  var(--text-sm);

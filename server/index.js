@@ -28,6 +28,12 @@ app.use(cors({
 }))
 app.use(express.json())
 
+// Simple request logger
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+  next()
+})
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }))
 
 app.use('/api/auth',    authRoutes)
@@ -36,6 +42,16 @@ app.use('/api/times',   timesRoutes)
 app.use('/api/push',    pushRoutes)
 app.use('/api/admin',   adminRoutes)
 
-app.listen(process.env.PORT || 4000, () => {
-  console.log(`Server running on port ${process.env.PORT || 4000}`)
+// Global JSON error handler
+app.use((err, req, res, next) => {
+  console.error('SERVER_ERROR:', err)
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  })
+})
+
+const PORT = process.env.PORT || 4000
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`)
 })

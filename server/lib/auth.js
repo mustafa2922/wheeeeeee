@@ -1,52 +1,47 @@
-import bcrypt from 'bcrypt'
-import jwt from 'jsonwebtoken'
+import bcrypt     from 'bcryptjs'
+import jwt        from 'jsonwebtoken'
+import { supabaseAdmin } from './supabase.js'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
-const JWT_EXPIRES_IN = '7d'
-const BCRYPT_ROUNDS = 10
+const JWT_SECRET  = process.env.JWT_SECRET
+const JWT_EXPIRES = '30d' // 30 days — long enough for mobile users
 
-/**
- * Hash a password using bcrypt
- */
-export async function hashPassword(password) {
-  return bcrypt.hash(password, BCRYPT_ROUNDS)
+/** Hash a plain password */
+export async function hashPassword(plain) {
+  return bcrypt.hash(plain, 12)
 }
 
-/**
- * Compare password against hash
- */
-export async function verifyPassword(password, hash) {
-  return bcrypt.compare(password, hash)
+/** Compare plain password against stored hash */
+export async function verifyPassword(plain, hash) {
+  return bcrypt.compare(plain, hash)
 }
 
-/**
- * Sign a JWT token with user data
- */
-export function signToken(userId, email, role, mosque_id = null, city_id = null) {
+/** Sign a JWT for a user row */
+export function signToken(user) {
   return jwt.sign(
-    { userId, email, role, mosque_id, city_id },
+    {
+      sub:       user.id,
+      email:     user.email,
+      role:      user.role,
+      mosque_id: user.mosque_id ?? null,
+      city_id:   user.city_id   ?? null,
+      country_id: user.country_id ?? null,
+    },
     JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    { expiresIn: JWT_EXPIRES }
   )
 }
 
-/**
- * Verify and decode JWT token
- */
+/** Verify and decode a JWT — throws if invalid */
 export function verifyToken(token) {
-  try {
-    return jwt.verify(token, JWT_SECRET)
-  } catch (err) {
-    return null
-  }
+  return jwt.verify(token, JWT_SECRET)
 }
 
-/**
- * Extract token from Authorization header
- */
-export function extractToken(authHeader) {
-  if (!authHeader) return null
-  const parts = authHeader.split(' ')
-  if (parts.length !== 2 || parts[0] !== 'Bearer') return null
-  return parts[1]
+/** Fetch a full user row by id */
+export async function getUserById(id) {
+  const { data } = await supabaseAdmin
+    .from('users')
+    .select('id, email, display_name, role, mosque_id, city_id, country_id, is_active, created_at')
+    .eq('id', id)
+    .single()
+  return data
 }

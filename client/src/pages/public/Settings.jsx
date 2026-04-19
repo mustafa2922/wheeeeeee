@@ -1,4 +1,5 @@
-﻿import { useLang }   from '../../context/LangContext.jsx'
+import { useNavigate } from 'react-router-dom'
+import { useLang }   from '../../context/LangContext.jsx'
 import { useTheme, THEMES } from '../../context/ThemeContext.jsx'
 import { useAuth }   from '../../context/AuthContext.jsx'
 import TopBar        from '../../components/layout/TopBar.jsx'
@@ -19,6 +20,7 @@ function Settings() {
   const { t, lang, setLang, locales } = useLang()
   const { theme, setTheme }           = useTheme()
   const { user, role, signOut }       = useAuth()
+  const navigate                      = useNavigate()
 
   return (
     <>
@@ -86,15 +88,15 @@ function Settings() {
               {role?.role === 'imam' && (
                 <div className="settings__row settings__row--bordered"
                   role="button" tabIndex={0}
-                  onClick={() => location.href = '/imam'}>
+                  onClick={() => navigate('/imam')}>
                   <span className="settings__row-label">{t('imam.updateTimes')}</span>
                   <span className="settings__chevron">›</span>
                 </div>
               )}
-              {(role?.role === 'city_admin') && (
+              {(role?.role === 'admin') && (
                 <div className="settings__row settings__row--bordered"
                   role="button" tabIndex={0}
-                  onClick={() => location.href = '/admin'}>
+                  onClick={() => navigate('/admin')}>
                   <span className="settings__row-label">Admin Dashboard</span>
                   <span className="settings__chevron">›</span>
                 </div>
@@ -102,7 +104,7 @@ function Settings() {
               {role?.role === 'super_admin' && (
                 <div className="settings__row settings__row--bordered"
                   role="button" tabIndex={0}
-                  onClick={() => location.href = '/super'}>
+                  onClick={() => navigate('/super')}>
                   <span className="settings__row-label">Super Admin Dashboard</span>
                   <span className="settings__chevron">›</span>
                 </div>
@@ -117,7 +119,7 @@ function Settings() {
         )}
 
         {!user && (
-          <Button variant="primary" fullWidth onClick={() => location.href = '/sign-in'}>
+          <Button variant="primary" fullWidth onClick={() => navigate('/sign-in')}>
             {t('auth.signIn')}
           </Button>
         )}

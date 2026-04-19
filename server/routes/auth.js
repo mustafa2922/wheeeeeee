@@ -1,202 +1,204 @@
-import { Router } from 'express'
+import { Router }       from 'express'
 import { supabaseAdmin } from '../lib/supabase.js'
-import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
-import { requireAuth } from '../middleware/requireAuth.js'
-import { requireRole } from '../middleware/requireRole.js'
+import {
+  hashPassword,
+  verifyPassword,
+  signToken,
+  getUserById,
+} from '../lib/auth.js'
+import { requireAuth }  from '../middleware/requireAuth.js'
+import { requireRole }  from '../middleware/requireRole.js'
 
 const router = Router()
 
-// Public user self-registration
+// ─── Public: self-registration (role = 'user' always) ───
 router.post('/register', async (req, res) => {
-  const { email, password, phone } = req.body
-  console.log('DEBUG: Registration request for:', email)
-  if (!email || !password)
-    return res.status(400).json({ error: 'email and password required' })
+  const { email, password, display_name, phone } = req.body
 
-  try {
-    const { data: existing, error: existsError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+  if (!email || !password || !display_name)
+    return res.status(400).json({ error: 'email, password, display_name required' })
 
-    if (existsError) return res.status(500).json({ error: existsError.message })
-    if (existing) return res.status(400).json({ error: 'User already exists' })
+  // Check duplicate email
+  const { data: existing } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('email', email.toLowerCase())
+    .single()
 
-    const hashedPassword = await hashPassword(password)
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .insert({
-        email,
-        password: hashedPassword,
-        phone: phone || null,
-        role: 'user'
-      })
-      .select('id, email, role, mosque_id, city_id')
-      .single()
+  if (existing)
+    return res.status(409).json({ error: 'Email already registered' })
 
-    if (error) {
-      console.error('DEBUG: Registration DB error:', error)
-      return res.status(400).json({ error: error.message })
-    }
+  const hashed = await hashPassword(password)
+  console.log(`Registering user: ${email.toLowerCase()}`)
 
-    console.log('DEBUG: Registration successful for:', data.email)
-    const token = signToken(data.id, data.email, data.role, data.mosque_id, data.city_id)
-    res.json({ token, user: data })
-  } catch (err) {
-    console.error('DEBUG: Registration catch block error:', err)
-    res.status(500).json({ error: err.message })
+  const { data: user, error } = await supabaseAdmin
+    .from('users')
+    .insert({
+      email:        email.toLowerCase(),
+      password:     hashed,
+      phone:        phone ?? null,
+      role:         'user',
+      display_name: display_name,
+    })
+    .select('id, email, role')
+    .single()
+
+  if (error) {
+    console.error(`Registration DB error for ${email}:`, error)
+    return res.status(500).json({ error: error.message })
   }
+
+  const token = signToken(user)
+  res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role } })
 })
 
-// User sign-in
-router.post('/sign-in', async (req, res) => {
-  const { email, password } = req.body
-  console.log('DEBUG: Sign-in request for:', email)
-  if (!email || !password)
-    return res.status(400).json({ error: 'email and password required' })
+// ─── Public: sign in ───
+router.post('/login',   async (req, res) => loginHandler(req, res))
+router.post('/sign-in', async (req, res) => loginHandler(req, res))
 
-  try {
-    const { data: user, error } = await supabaseAdmin
-      .from('users')
-      .select('id, email, password, role, mosque_id, city_id')
-      .eq('email', email)
-      .maybeSingle()
+async function loginHandler(req, res) {
+  const { email, password, phone } = req.body
+  console.log(`Login attempt: ${email?.toLowerCase()} via ${req.path}`)
 
-    if (error) {
-      console.error('DEBUG: Sign-in DB error:', error)
-      return res.status(500).json({ error: error.message })
-    }
-    if (!user) {
-      console.log('DEBUG: User not found for email:', email)
+  if (!email || !password || !phone)
+    return res.status(400).json({ error: 'email, password and phone required' })
+
+  const { data: user, error } = await supabaseAdmin
+    .from('users')
+    .select('id, email, password, role, mosque_id, city_id')
+    .eq('email', email.toLowerCase())
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      console.log(`Login failed: user not found: ${email}`)
       return res.status(401).json({ error: 'Invalid credentials' })
     }
-
-    const isValid = await verifyPassword(password, user.password)
-    console.log('DEBUG: Password validity for', email, 'is:', isValid)
-    if (!isValid) return res.status(401).json({ error: 'Invalid credentials' })
-
-    const token = signToken(user.id, user.email, user.role, user.mosque_id, user.city_id)
-    res.json({ token, user: { id: user.id, email: user.email, role: user.role, mosque_id: user.mosque_id, city_id: user.city_id } })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
+    console.error(`Login DB error for ${email}:`, error)
+    return res.status(500).json({ error: error.message })
   }
-})
 
-// Super admin creates a city_admin account
-router.post('/create-admin', requireAuth, requireRole('super_admin'), async (req, res) => {
-  const { email, password, phone, city_id } = req.body
-  if (!email || !password || !city_id)
-    return res.status(400).json({ error: 'email, password and city_id required' })
+  if (!user)
+    return res.status(401).json({ error: 'Invalid credentials' })
 
-  try {
-    const { data: existing, error: existsError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
-
-    if (existsError) return res.status(500).json({ error: existsError.message })
-    if (existing) return res.status(400).json({ error: 'User already exists' })
-
-    const hashedPassword = await hashPassword(password)
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .insert({
-        email,
-        password: hashedPassword,
-        phone: phone || null,
-        role: 'city_admin',
-        city_id
-      })
-      .select('id, email, role, city_id')
-      .single()
-
-    if (error) return res.status(400).json({ error: error.message })
-
-    res.json({ user: data })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
+  const valid = await verifyPassword(password, user.password)
+  if (!valid || user.phone !== phone) {
+    console.log(`Login failed: invalid creds (pass or phone) for ${email}`)
+    return res.status(401).json({ error: 'Invalid credentials' })
   }
-})
 
-// City admin or super admin creates an imam account
-router.post('/create-imam', requireAuth, requireRole('city_admin', 'super_admin'), async (req, res) => {
-  const { email, password, phone, mosque_id } = req.body
-  if (!email || !password || !mosque_id)
-    return res.status(400).json({ error: 'email, password and mosque_id required' })
+  // Never send password hash to client
+  const { password: _, ...safeUser } = user
+  const token = signToken(safeUser)
 
-  try {
-    const { data: existing, error: existsError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
+  res.json({ token, user: safeUser })
+}
 
-    if (existsError) return res.status(500).json({ error: existsError.message })
-    if (existing) return res.status(400).json({ error: 'User already exists' })
-
-    const hashedPassword = await hashPassword(password)
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .insert({
-        email,
-        password: hashedPassword,
-        phone: phone || null,
-        role: 'imam',
-        mosque_id
-      })
-      .select('id, email, role, mosque_id')
-      .single()
-
-    if (error) return res.status(400).json({ error: error.message })
-
-    res.json({ user: data })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Update credentials (super admin can update anyone, others only themselves)
-router.patch('/update-credentials', requireAuth, async (req, res) => {
-  const { target_user_id, email, password, phone } = req.body
-  const isSuperAdmin = req.user.role === 'super_admin'
-  const userId = isSuperAdmin && target_user_id ? target_user_id : req.user.userId
-
-  try {
-    const updates = {}
-    if (email) updates.email = email
-    if (password) updates.password = await hashPassword(password)
-    if (phone !== undefined) updates.phone = phone
-
-    const { error } = await supabaseAdmin
-      .from('users')
-      .update(updates)
-      .eq('id', userId)
-
-    if (error) return res.status(400).json({ error: error.message })
-
-    res.json({ success: true })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
-  }
-})
-
-// Get own user data
+// ─── Protected: get own profile ───
 router.get('/me', requireAuth, async (req, res) => {
-  try {
-    const { data: user, error } = await supabaseAdmin
-      .from('users')
-      .select('id, email, phone, role')
-      .eq('id', req.user.userId)
+  const user = await getUserById(req.user.sub)
+  if (!user) return res.status(404).json({ error: 'User not found' })
+  res.json(user)
+})
+
+// ─── Super admin: create any role account ───
+router.post('/create-admin', requireAuth, requireRole('super_admin'), async (req, res) => {
+  const { email, password, display_name, city_id, phone } = req.body
+
+  if (!email || !password || !display_name || !city_id || !phone)
+    return res.status(400).json({ error: 'All fields including phone are required' })
+
+  const hashed = await hashPassword(password)
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .insert({
+      email:    email.toLowerCase(),
+      password: hashed,
+      role:     'admin',
+      city_id:  Number(city_id),
+      phone,
+      display_name
+    })
+    .select('id, email, role, city_id')
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ user_id: data.id })
+})
+
+// ─── Admin or super admin: create imam account ───
+router.post('/create-imam', requireAuth, requireRole('admin', 'super_admin'), async (req, res) => {
+  const { email, password, display_name, mosque_id, phone } = req.body
+
+  if (!email || !password || !display_name || !mosque_id || !phone)
+    return res.status(400).json({ error: 'All fields including phone are required' })
+
+  // Admin can only assign imams to mosques in their city
+  if (req.role.role === 'admin') {
+    const { data: mosque } = await supabaseAdmin
+      .from('mosques')
+      .select('area_id, areas(city_id)')
+      .eq('id', mosque_id)
       .single()
 
-    if (error) return res.status(404).json({ error: 'User not found' })
-
-    res.json({ user })
-  } catch (err) {
-    res.status(500).json({ error: err.message })
+    if (!mosque || mosque.areas?.city_id !== req.role.city_id)
+      return res.status(403).json({ error: 'Mosque not in your city' })
   }
+
+  const resolvedCity = await supabaseAdmin
+    .from('mosques')
+    .select('city_id, area_id, areas(city_id)')
+    .eq('id', mosque_id)
+    .single()
+    
+  const city_id = resolvedCity.data?.city_id || resolvedCity.data?.areas?.city_id
+  
+  if (!city_id) {
+    return res.status(400).json({ error: 'Could not resolve city for this mosque' })
+  }
+
+  const hashed = await hashPassword(password)
+
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .insert({
+      email:     email.toLowerCase(),
+      password:  hashed,
+      role:      'imam',
+      mosque_id,
+      city_id,
+      phone,
+      display_name
+    })
+    .select('id, email, role, mosque_id')
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ user_id: data.id })
+})
+
+// ─── Super admin: update any user's credentials ───
+router.patch('/update-credentials', requireAuth, requireRole('super_admin'), async (req, res) => {
+  const { target_user_id, email, password } = req.body
+
+  if (!target_user_id)
+    return res.status(400).json({ error: 'target_user_id required' })
+
+  const updates = {}
+  if (email)    updates.email    = email.toLowerCase()
+  if (password) updates.password = await hashPassword(password)
+
+  if (!Object.keys(updates).length)
+    return res.status(400).json({ error: 'Nothing to update' })
+
+  const { error } = await supabaseAdmin
+    .from('users')
+    .update(updates)
+    .eq('id', target_user_id)
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ success: true })
 })
 
 export default router

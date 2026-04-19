@@ -57,9 +57,9 @@ router.get('/:id', async (req, res) => {
 
 // Admin registers a mosque
 router.post('/', requireAuth, requireRole('city_admin', 'super_admin'), async (req, res) => {
-  const { name, name_roman, area_id, lat, lng } = req.body
-  if (!name || !area_id || !lat || !lng)
-    return res.status(400).json({ error: 'name, area_id, lat, lng required' })
+  const { name, name_roman, area_id, city_id, country_id, lat, lng } = req.body
+  if (!name || !area_id || !city_id || !country_id || !lat || !lng)
+    return res.status(400).json({ error: 'name, area_id, city_id, country_id, lat, lng required' })
 
   // City admin scope check
   if (req.role.role === 'city_admin') {
@@ -71,7 +71,16 @@ router.post('/', requireAuth, requireRole('city_admin', 'super_admin'), async (r
 
   const { data: mosque, error } = await supabaseAdmin
     .from('mosques')
-    .insert({ name, name_roman, area_id, lat, lng, created_by: req.user.sub })
+    .insert({ 
+      name, 
+      name_roman, 
+      area_id, 
+      city_id,
+      country_id,
+      lat, 
+      lng, 
+      created_by: req.user.sub 
+    })
     .select().single()
 
   if (error) return res.status(500).json({ error: error.message })
@@ -99,6 +108,12 @@ router.get('/geo/countries', async (_req, res) => {
 router.get('/geo/cities/:country_id', async (req, res) => {
   const { data } = await supabaseAdmin
     .from('cities').select('*').eq('country_id', req.params.country_id)
+  res.json(data)
+})
+
+router.get('/geo/city/:id', async (req, res) => {
+  const { data } = await supabaseAdmin
+    .from('cities').select('*, countries(*)').eq('id', req.params.id).single()
   res.json(data)
 })
 

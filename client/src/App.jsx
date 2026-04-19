@@ -15,7 +15,7 @@ const Subscriptions = lazy(() => import('./pages/public/Subscriptions.jsx'))
 const SettingsPage  = lazy(() => import('./pages/public/Settings.jsx'))
 const SignIn        = lazy(() => import('./pages/public/SignIn.jsx'))
 const ImamPanel     = lazy(() => import('./pages/imam/ImamPanel.jsx'))
-const AdminPanel    = lazy(() => import('./pages/admin/AdminPanel.jsx'))
+const AdminPanel    = lazy(() => import('./pages/super/SuperPanel.jsx'))
 const SuperPanel    = lazy(() => import('./pages/super/SuperPanel.jsx'))
 const Register = lazy(() => import('./pages/public/Register.jsx'))
 
@@ -24,7 +24,13 @@ function Protected({ children, requiredRole }) {
   const { user, role, loading } = useAuth()
   if (loading) return <PageFallback />
   if (!user)   return <Navigate to="/sign-in" replace />
-  if (requiredRole && role?.role !== requiredRole) return <Navigate to="/" replace />
+
+  // Super admin can access everything
+  if (role?.role === 'super_admin') return children
+
+  if (requiredRole && role?.role !== requiredRole) {
+    return <Navigate to="/" replace />
+  }
   return children
 }
 
@@ -82,7 +88,7 @@ function App() {
             <Route
               path="admin/*"
               element={
-                <Protected requiredRole="city_admin">
+                <Protected requiredRole="admin">
                   <AdminPanel />
                 </Protected>
               }

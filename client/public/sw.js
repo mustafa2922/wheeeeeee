@@ -1,61 +1,14 @@
-const CACHE_NAME = 'waqt-v1'
-
-// Files to cache for offline — Vite's built assets are hashed,
-// so we cache the shell routes that always work offline
-const SHELL_ROUTES = ['/', '/nearby', '/subscriptions', '/settings']
-
-// ── Install: cache app shell ──
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL_ROUTES))
-  )
-  self.skipWaiting()
-})
-
-// ── Activate: clean up old caches ──
+// ── Activate: WIPE all caches and take control ──
+// This ensures that old cached versions of the app represent a clean slate.
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
   )
   self.clients.claim()
 })
 
-// ── Fetch: network-first for API, cache-first for assets ──
-self.addEventListener('fetch', event => {
-  const { request } = event
-  const url = new URL(request.url)
-
-  // Always go network-first for API calls
-  if (url.pathname.startsWith('/api')) {
-    event.respondWith(
-      fetch(request).catch(() =>
-        new Response(JSON.stringify({ error: 'Offline' }), {
-          headers: { 'Content-Type': 'application/json' },
-        })
-      )
-    )
-    return
-  }
-
-  // Cache-first for everything else (assets, pages)
-  event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached
-      return fetch(request).then(response => {
-        // Cache successful GET responses
-        if (request.method === 'GET' && response.status === 200) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then(cache => cache.put(request, clone))
-        }
-        return response
-      })
-    })
-  )
-})
-
 // ── Push: show notification ──
+// We keep this so the broadcast feature still works
 self.addEventListener('push', event => {
   if (!event.data) return
   const { title, body, mosque_id } = event.data.json()
@@ -83,4 +36,4 @@ self.addEventListener('notificationclick', event => {
       return clients.openWindow(target)
     })
   )
-})
+})

@@ -1,84 +1,115 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 
-const AuthContext = createContext(null)
-
-function decodeToken(token) {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const decoded = JSON.parse(atob(parts[1]))
-    return decoded
-  } catch {
-    return null
-  }
-}
+const AuthContext  = createContext(null)
+const TOKEN_KEY    = 'waqt_token'
+const USER_KEY     = 'waqt_user'
+const API_BASE     = import.meta.env.VITE_API_URL ?? 'http://localhost:4000'
 
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(null)
-  const [role,    setRole]    = useState(null)
+  const [user,    setUser]    = useState(() => {
+    try { return JSON.parse(localStorage.getItem(USER_KEY)) } catch { return null }
+  })
   const [loading, setLoading] = useState(true)
 
-  // Hydrate from localStorage on mount
+  // On mount: check if the user account is still valid/active
   useEffect(() => {
-    const token = localStorage.getItem('auth_token')
-    if (token) {
-      const decoded = decodeToken(token)
-      if (decoded && decoded.exp * 1000 > Date.now()) {
-        // Token is valid
-        setUser({ 
-          userId: decoded.userId, 
-          email: decoded.email, 
-          mosque_id: decoded.mosque_id, 
-          city_id: decoded.city_id 
-        })
-        setRole({ role: decoded.role })
-      } else {
-        // Token expired, clear it
-        localStorage.removeItem('auth_token')
-      }
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (!token) {
+      setLoading(false)
+      return
     }
-    setLoading(false)
+
+    // Attempt a lightweight request to verify account status
+    fetch(`${API_BASE}/api/auth/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => {
+      if (res.status === 401) signOut()
+    })
+    .finally(() => setLoading(false))
   }, [])
 
-  async function signIn(email, password) {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/sign-in`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
+  // Role convenience — derived from user.role directly
+  const role         = user ? { role: user.role, mosque_id: user.mosque_id, city_id: user.city_id } : null
+  const isSuperAdmin = user?.role === 'super_admin'
+  const isAdmin      = user?.role === 'admin' || isSuperAdmin
+  const isImam       = user?.role === 'imam'
 
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Sign in failed')
+  /** Attach token to every API request */
+  function getToken() {
+    return localStorage.getItem(TOKEN_KEY)
+  }
+
+  async function signIn(email, password, phone) {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, password, phone }),
+      })
+
+      const contentType = res.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json()
+        if (!res.ok) {
+          console.error(`Login failed [${res.status}]:`, data.error)
+          throw new Error(data.error ?? 'Login failed')
+        }
+        localStorage.setItem(TOKEN_KEY, data.token)
+        localStorage.setItem(USER_KEY,  JSON.stringify(data.user))
+        setUser(data.user)
+        return data.user
+      } else {
+        const text = await res.text()
+        console.error(`Unexpected response [${res.status}]:`, text.slice(0, 200))
+        throw new Error(`Server error: ${res.status} ${res.statusText}`)
+      }
+    } finally {
+      setLoading(false)
     }
-
-    const { token, user } = await response.json()
-    localStorage.setItem('auth_token', token)
-    setUser({ 
-      userId: user.id, 
-      email: user.email, 
-      mosque_id: user.mosque_id, 
-      city_id: user.city_id 
-    })
-    setRole({ role: user.role })
-    return { token, user }
   }
 
-  async function signOut() {
-    localStorage.removeItem('auth_token')
+  async function register(email, password, display_name) {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email, password, display_name }),
+      })
+
+      const contentType = res.headers.get('content-type')
+      if (contentType && contentType.includes('application/json')) {
+        const data = await res.json()
+        if (!res.ok) {
+          console.error(`Registration failed [${res.status}]:`, data.error)
+          throw new Error(data.error ?? 'Registration failed')
+        }
+        localStorage.setItem(TOKEN_KEY, data.token)
+        localStorage.setItem(USER_KEY,  JSON.stringify(data.user))
+        setUser(data.user)
+        return data.user
+      } else {
+        const text = await res.text()
+        console.error(`Unexpected response [${res.status}]:`, text.slice(0, 200))
+        throw new Error(`Server error: ${res.status} ${res.statusText}`)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function signOut() {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
     setUser(null)
-    setRole(null)
   }
-
-  /* Convenience role checks */
-  const isSuperAdmin = role?.role === 'super_admin'
-  const isAdmin      = role?.role === 'admin'
-  const isImam       = role?.role === 'imam'
 
   return (
     <AuthContext.Provider value={{
       user, role, loading,
-      signIn, signOut,
+      signIn, register, signOut, getToken,
       isSuperAdmin, isAdmin, isImam,
     }}>
       {children}
